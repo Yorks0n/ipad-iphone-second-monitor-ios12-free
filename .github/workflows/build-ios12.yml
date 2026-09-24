@@ -1,0 +1,61 @@
+name: Build iOS 12 client
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: Bundle ID matching your Ad Hoc provisioning profile
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with Xcode 15.4
+        env:
+          BUNDLE_ID: ${{ inputs.bundle_id }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$BUNDLE_ID" =~ ^[A-Za-z0-9]+(\.[A-Za-z0-9-]+)+$ ]]; then
+            echo "Enter a reverse-DNS bundle ID, such as com.example.LegacyPadDisplay" >&2
+            exit 1
+          fi
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          xcodebuild -version
+
+          # The committed project uses Xcode 16's project format. Its objects
+          # are otherwise compatible with Xcode 15.4.
+          sed -i '' -e 's/objectVersion = 77;/objectVersion = 56;/' \
+            -e '/preferredProjectObjectVersion = 77;/d' \
+            iOS/LegacyPadDisplay.xcodeproj/project.pbxproj
+
+          xcodebuild \
+            -project iOS/LegacyPadDisplay.xcodeproj \
+            -scheme LegacyPadDisplay \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/LegacyPadDisplayDerivedData" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+          app="$RUNNER_TEMP/LegacyPadDisplayDerivedData/Build/Products/Release-iphoneos/LegacyPadDisplay.app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$app/Info.plist")" = 12.0
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = "$BUNDLE_ID"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$RUNNER_TEMP/LegacyPadDisplay-unsigned.zip"
+
+      - name: Upload unsigned app
+        uses: actions/upload-artifact@v4
+        with:
+          name: LegacyPadDisplay-unsigned
+          path: ${{ runner.temp }}/LegacyPadDisplay-unsigned.zip
+          if-no-files-found: error
+          retention-days: 7

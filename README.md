@@ -126,6 +126,11 @@ permissions), then run it again.
 
 ## Step 2 — Build the iPad app (`iOS/` in this repo)
 
+If your only Mac runs Xcode 27, it cannot build the iOS 12 deployment target.
+Use the [cloud build and local Ad Hoc signing guide](iOS/CLOUD_BUILD.zh-CN.md)
+instead. The workflow compiles with Xcode 15.4, then you sign and install the
+app from your Mac without uploading your signing key to GitHub.
+
 ```bash
 open iOS/LegacyPadDisplay.xcodeproj
 ```
