@@ -10,6 +10,8 @@
 4. 在这台 Mac 的“钥匙串访问”创建证书签名请求（CSR），然后在开发者网站创建 **Apple Distribution** 证书，下载 `.cer` 并双击导入钥匙串。确认它和私钥一起出现在“我的证书”中。已有可用的 Apple Distribution 身份时可直接使用。
 5. 在开发者网站创建 **Ad Hoc** 描述文件，选择刚注册的 App ID、Apple Distribution 证书和这台 iPad，下载 `.mobileprovision` 文件。
 
+如果 `security find-identity -v -p codesigning` 显示 `0 valid identities found`，检查证书是否与创建 CSR 的私钥在同一个钥匙串，并从 [Apple PKI](https://www.apple.com/certificateauthority/) 安装 **Worldwide Developer Relations - G3** 中间证书。
+
 Apple 说明：[创建 CSR](https://developer.apple.com/help/account/certificates/create-a-certificate-signing-request)、[注册设备](https://developer.apple.com/help/account/devices/register-a-single-device)、[创建 Ad Hoc 描述文件](https://developer.apple.com/help/account/provisioning-profiles/create-an-ad-hoc-provisioning-profile)。
 
 ## 2. 在 GitHub 编译
@@ -43,6 +45,15 @@ bash iOS/sign-adhoc.sh \
 
 ## 4. 装到 iPad
 
-在这台 Mac 安装并打开 [Apple Configurator](https://apps.apple.com/app/apple-configurator/id1037126344)，连接并信任 iPad，选择设备，使用 **Add → Apps → Choose from my Mac** 选中 `LegacyPadDisplay.ipa`。Apple 的[安装说明](https://support.apple.com/guide/apple-configurator-mac/add-apps-to-a-device-cad4cd08c03/mac)提供了界面步骤。首次打开如果出现不受信任的开发者提示，到 iPad 的“设置 → 通用 → 描述文件与设备管理”中信任开发者。
+连接并信任 iPad 后，可以用本仓库实测成功的命令行方式安装：
+
+```bash
+brew install ideviceinstaller
+idevice_id -l
+ideviceinstaller -u 'YOUR_IPAD_UDID' install ~/Downloads/LegacyPadDisplay.ipa
+ideviceinstaller -u 'YOUR_IPAD_UDID' list --bundle-identifier com.yourname.LegacyPadDisplay
+```
+
+把 UDID、IPA 路径和 Bundle ID 换成自己的值。安装输出 `Install: Complete`，且列表中出现 Bundle ID，就表示应用已装到设备。也可以使用 [Apple Configurator](https://apps.apple.com/app/apple-configurator/id1037126344)：选择设备，使用 **Add → Apps → Choose from my Mac** 选中 IPA；Apple 的[安装说明](https://support.apple.com/guide/apple-configurator-mac/add-apps-to-a-device-cad4cd08c03/mac)提供了界面步骤。首次打开如果出现不受信任的开发者提示，到 iPad 的“设置 → 通用 → 描述文件与设备管理”中信任开发者。
 
 启动后应显示 `Listening on :9000`。接下来按仓库根目录 README 的说明，在 Mac 上运行 OpenDisplay，并用 Lightning 或同一 Wi-Fi 连接。
